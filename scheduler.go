@@ -30,10 +30,17 @@ func NextDate(now time.Time, dateStr string, repeat string) (string, error) {
 		if len(rule) != 2 {
 			return "", fmt.Errorf("неверный формат правила d")
 		}
+
+		if rule[1] == "" {
+			return "", fmt.Errorf("не указано количество дней в правиле d")
+		}
+
 		days, err := strconv.Atoi(rule[1])
+
 		if err != nil || days <= 0 || days > 400 {
 			return "", fmt.Errorf("наверное количество дней: %v", rule[1])
 		}
+
 		nextDate := taskDate.AddDate(0, 0, days)
 		for nextDate.Before(now) {
 			nextDate = nextDate.AddDate(0, 0, days)
@@ -53,4 +60,6 @@ func NextDate(now time.Time, dateStr string, repeat string) (string, error) {
 		log.Printf("Следующая дата вычислена: %s", nextDate.Format("20060102"))
 		return nextDate.Format("20060102"), nil
 	}
+
+	return "", fmt.Errorf("неподдерживаемое правило повторения: %s", repeat)
 }
