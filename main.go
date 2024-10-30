@@ -42,7 +42,7 @@ func InitDB() *sql.DB {
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				date CHAR(8) NOT NULL DEFAULT "",
 				title VARCHAR(256) NOT NULL DEFAULT "",
-				comment TEXT NOT NULL DEFAULT "",
+				comment TEXT,
 				repeat VARCHAR(128) NOT NULL DEFAULT ""
 			);
 			CREATE INDEX IF NOT EXISTS scheduler_date ON scheduler (date);
@@ -59,6 +59,10 @@ func InitDB() *sql.DB {
 func main() {
 	webDir := "./web"
 
+	// r := chi.NewRouter()
+	// r.Use(middleware.Logger)
+	// r.Use(middleware.Recoverer)
+
 	db := InitDB()
 	defer db.Close()
 
@@ -66,6 +70,22 @@ func main() {
 	http.Handle("/", fileServer)
 
 	http.HandleFunc("/api/nextdate", GetNextDateHandler)
+	http.HandleFunc("/api/tasks", GetTasksHandler)
+	http.HandleFunc("/api/task/done", DoneTaskHandler)
+	http.HandleFunc("/api/task", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			GetTaskHandler(w, r)
+		case http.MethodPost:
+			PostTaskHandler(w, r)
+		case http.MethodPut:
+			PutTaskHandler(w, r)
+		case http.MethodDelete:
+			DeleteTaskHandler(w, r)
+		default:
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		}
+	})
 
 	defaultPort := tests.Port
 	envPort := os.Getenv("TODO_PORT")
