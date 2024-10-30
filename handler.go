@@ -38,19 +38,16 @@ func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверка обязательного поля title
 	if task.Title == "" {
 		writeErrorResponse(w, http.StatusBadRequest, "Не указан заголовок задачи")
 		return
 	}
 
-	// Определение текущей даты
 	now := time.Now()
 	today := now.Format("20060102")
 
-	// Проверка и обработка поля date
 	if task.Date == "" {
-		task.Date = today // Устанавливаем текущую дату, если дата не указана
+		task.Date = today
 	} else {
 		taskDate, err := time.Parse("20060102", task.Date)
 		if err != nil {
@@ -58,23 +55,18 @@ func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Сравнение с текущей датой, учитывая время
 		parsedDate := taskDate.Truncate(24 * time.Hour)
 		now = now.Truncate(24 * time.Hour)
 
-		// Если указанная дата в прошлом
 		if parsedDate.Before(now) {
 			if task.Repeat == "" {
-				// Если нет правила повторения, устанавливаем текущую дату
 				task.Date = today
 			} else {
-				// Применяем правило повторения, чтобы получить следующую дату
 				nextDate, err := NextDate(now, task.Date, task.Repeat)
 				if err != nil {
 					writeErrorResponse(w, http.StatusBadRequest, "Ошибка в правиле повторения: "+err.Error())
 					return
 				}
-				// Если правило повторения "d 1" и дата должна быть сегодня, устанавливаем её
 				if task.Repeat == "d 1" && nextDate == today {
 					task.Date = today
 				} else {
@@ -84,7 +76,6 @@ func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Проверка корректности правила повторения
 	if task.Repeat != "" {
 		_, err := NextDate(now, task.Date, task.Repeat)
 		if err != nil {
@@ -93,7 +84,6 @@ func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Подключение к базе данных
 	db, err := sql.Open("sqlite3", "./scheduler.db")
 	if err != nil {
 		writeErrorResponse(w, http.StatusInternalServerError, "Ошибка подключения к базе данных: "+err.Error())
@@ -101,7 +91,6 @@ func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	// Добавление задачи в базу данных
 	query := "INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)"
 	result, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
 	if err != nil {
@@ -114,7 +103,6 @@ func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Формируем успешный ответ с ID задачи
 	response := TaskResponse{ID: strconv.Itoa(int(taskID))}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
