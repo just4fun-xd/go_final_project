@@ -59,10 +59,6 @@ func InitDB() *sql.DB {
 func main() {
 	webDir := "./web"
 
-	// r := chi.NewRouter()
-	// r.Use(middleware.Logger)
-	// r.Use(middleware.Recoverer)
-
 	db := InitDB()
 	defer db.Close()
 
