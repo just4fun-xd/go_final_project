@@ -186,21 +186,46 @@ func (h *Handlers) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) DoneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
-		writeErrorResponse(w, http.StatusBadRequest, "Не указан идентификатор задачи")
+		writeErrorResponse(w, http.StatusBadRequest, "Не указан идентификатор задачи.")
 		return
 	}
-
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Некорректный идентификатор задачи")
+		writeErrorResponse(w, http.StatusBadRequest, "Некорректный идентификатор задачи.")
 		return
 	}
 
-	_, err = h.TaskRepository.MarkTaskAsDone(id)
-	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Ошибка базы данных: "+err.Error())
+	task, err := h.TaskRepository.GetTaskByID(id)
+	if err == sql.ErrNoRows {
+		writeErrorResponse(w, http.StatusNotFound, "Задача не найдена.")
+		return
+	} else if err != nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "Ошибка выполнения запроса: "+err.Error())
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	if task.Repeat == "" {
+		_, err = h.TaskRepository.DeleteTask(id)
+		if err != nil {
+			writeErrorResponse(w, http.StatusInternalServerError, "Ошибка удаления задачи: "+err.Error())
+			return
+		}
+	} else {
+		now := time.Now()
+		nextDate, err := h.TaskService.NextDate(now, task.Date, task.Repeat)
+		if err != nil {
+			writeErrorResponse(w, http.StatusInternalServerError, "Ошибка при расчете следующей даты: "+err.Error())
+			return
+		}
+
+		_, err = h.TaskRepository.UpdateTaskDate(id, nextDate)
+		if err != nil {
+			writeErrorResponse(w, http.StatusInternalServerError, "Ошибка обновления задачи: "+err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
 }
