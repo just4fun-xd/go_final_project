@@ -6,6 +6,7 @@ import (
 	"go_final_project/model"
 	"go_final_project/service"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -123,6 +124,10 @@ func (h *Handlers) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if tasks == nil {
+		tasks = []model.Tasks{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"tasks": tasks,
@@ -145,6 +150,12 @@ func (h *Handlers) PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	id, err := strconv.Atoi(task.ID)
+	if err != nil || id <= 0 || id > math.MaxInt32 {
+		writeErrorResponse(w, http.StatusBadRequest, "Некорректный идентификатор задачи")
+		return
+	}
+
 	now := time.Now()
 	task.Date, err = service.ValidateTaskDate(now, task.Date, task.Repeat)
 	if err != nil {
@@ -158,7 +169,11 @@ func (h *Handlers) PutTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("{}")); err != nil {
+		log.Printf("Ошибка записи ответа: %v", err)
+	}
 }
 
 func (h *Handlers) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +195,11 @@ func (h *Handlers) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("{}")); err != nil {
+		log.Printf("Ошибка записи ответа: %v", err)
+	}
 }
 
 func (h *Handlers) DoneTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -227,5 +246,7 @@ func (h *Handlers) DoneTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+	if _, err := w.Write([]byte("{}")); err != nil {
+		log.Printf("Ошибка записи ответа: %v", err)
+	}
 }
