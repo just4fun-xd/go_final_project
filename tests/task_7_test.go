@@ -40,6 +40,7 @@ func TestDone(t *testing.T) {
 	})
 
 	for i := 0; i < 3; i++ {
+
 		ret, err := postJSON("api/task/done?id="+id, nil, http.MethodPost)
 		assert.NoError(t, err)
 		assert.Empty(t, ret)
